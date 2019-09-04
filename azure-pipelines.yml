@@ -12,6 +12,7 @@ variables:
   platform: 'Any CPU'
   system.debug: 'true'
   nuggetsDirectory: $(Build.ArtifactStagingDirectory)\Nuggets
+  version: ''
   
 steps:
 - task: DotNetCoreCLI@2
@@ -20,7 +21,9 @@ steps:
     command: build
     projects: '$(projectsToBuild)'
     configuration: $(configuration)
-    arguments: '-r:False -noLogo'
+    arguments: '-noLogo'
+    feedsToUse: select
+    vstsFeed: 'Nuggets'
     
 - task: DotNetCoreCLI@2
   displayName: Pack
