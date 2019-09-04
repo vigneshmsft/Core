@@ -1,17 +1,20 @@
 trigger:
 - master
 
-name: Core-$(Date.yyy)$(Date.mm).$(Rev.r)
+name: Core-$(Date:yyy.MM)$(Rev:.r)
 
 pool:
   vmImage: 'windows-latest'
+
+variables:  
   projectsToBuild: '**/Core[*].csproj'
   configuration: Release
   platform: 'Any CPU'
-
+  
 steps:
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
     command: build
-    arguments: '$(projectsToBuild) -c $(configuration) -p:Platform=$(platform)' 
+    projects: '$(projectsToBuild)'
+    arguments: '-c $(configuration) -p:Platform=$(platform)' 
