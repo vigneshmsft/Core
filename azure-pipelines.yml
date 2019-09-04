@@ -12,6 +12,7 @@ variables:
   platform: 'Any CPU'
   system.debug: 'true'
   nuggetsDirectory: $(Build.ArtifactStagingDirectory)\Nuggets
+  nuggetsToPush: $(nuggetsDirectory)\Core*.nupkg
   version: ''
   
 steps:
@@ -32,5 +33,13 @@ steps:
     custom: pack
     projects: '$(projectsToBuild)'
     configuration: $(configuration)
-    arguments: '-r:False -noLogo --no-build -o $(nuggetsDirectory)'
-
+    arguments: '-noLogo --no-build -o $(nuggetsDirectory)'
+- task: DotNetCoreCLI@2
+  displayName: Push Packages to Nuggets
+  inputs:
+    command: push
+    nobuild: true
+    arguments: '-noLogo'
+    packagesToPush: $(nuggetsToPush)
+    nuGetFeedType: internal
+    publishVstsFeed: 'Nuggets'
