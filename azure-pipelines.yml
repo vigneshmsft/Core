@@ -11,11 +11,22 @@ variables:
   configuration: Release
   platform: 'Any CPU'
   system.debug: 'true'
+  nuggetsDirectory: $(Build.ArtifactStagingDirectory)\Nuggets
   
 steps:
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
-    command: 'build'
+    command: build
     projects: '$(projectsToBuild)'
-    arguments: '-c $(configuration) -p:Platform="$(platform)""'
+    configuration: $(configuration)
+    arguments: '-r:False -noLogo'
+    
+- task: DotNetCoreCLI@2
+  displayName: Pack
+  inputs:
+    command: pack
+    projects: '$(projectsToBuild)'
+    configuration: $(configuration)
+    arguments: '-r:False -noLogo -o $(nuggetsDirectory)'
+
