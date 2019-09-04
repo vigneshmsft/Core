@@ -1,7 +1,7 @@
 trigger:
 - master
 
-name: Core-$(Date:yyy.MM)$(Rev:.r)
+name: Core-$(Date:yyy.M)$(Rev:.r)
 
 pool:
   vmImage: 'windows-latest'
@@ -26,7 +26,8 @@ steps:
   displayName: Pack
   inputs:
     command: custom
+    custom: pack
     projects: '$(projectsToBuild)'
     configuration: $(configuration)
-    arguments: 'pack -r:False -noLogo -o $(nuggetsDirectory)'
+    arguments: '-r:False -noLogo --no-build -o $(nuggetsDirectory)'
 
