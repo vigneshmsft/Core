@@ -7,14 +7,15 @@ pool:
   vmImage: 'windows-latest'
 
 variables:  
-  projectsToBuild: '**/Core*.csproj'
+  projectsToBuild: '**/*.csproj'
   configuration: Release
   platform: 'Any CPU'
+  system.debug: 'true'
   
 steps:
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
-    command: build
+    command: 'build'
     projects: '$(projectsToBuild)'
-    arguments: '-c $(configuration) -p:Platform=$(platform)' 
+    arguments: '-c $(configuration) -p:Platform=$(platform)'
