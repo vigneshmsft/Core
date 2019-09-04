@@ -25,8 +25,8 @@ steps:
 - task: DotNetCoreCLI@2
   displayName: Pack
   inputs:
-    command: pack
+    command: custom
     projects: '$(projectsToBuild)'
     configuration: $(configuration)
-    arguments: '-r:False -noLogo -o $(nuggetsDirectory)'
+    arguments: 'pack -r:False -noLogo -o $(nuggetsDirectory)'
 
