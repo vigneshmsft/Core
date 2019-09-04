@@ -18,4 +18,4 @@ steps:
   inputs:
     command: 'build'
     projects: '$(projectsToBuild)'
-    arguments: '-c $(configuration) -p:Platform=$(platform)'
+    arguments: '-c $(configuration) -p:Platform="$(platform)""'
