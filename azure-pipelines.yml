@@ -18,11 +18,12 @@ variables:
 steps:
 
 - task: PowerShell@2
+  displayName: Prepare Version Number
   inputs:
     targetType: 'inline'
     script: |
       $version = $env:BUILD_BUILDNUMBER.Substring($env:BUILD_BUILDNUMBER.IndexOf('-')+1);
-      Write-Host "##vso[task.setvariable variable=version;]$version"
+      Write-Host "##vso[task.setvariable variable=version;]$version";
       
 
 - task: DotNetCoreCLI@2
@@ -43,6 +44,7 @@ steps:
     projects: '$(projectsToBuild)'
     configuration: $(configuration)
     arguments: '-noLogo --no-build -p:PackageVersion=$(version) -o $(nuggetsDirectory)'
+
 - task: DotNetCoreCLI@2
   displayName: Push Packages to Nuggets
   inputs:
