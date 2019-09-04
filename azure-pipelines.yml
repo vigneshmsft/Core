@@ -7,7 +7,7 @@ pool:
   vmImage: 'windows-latest'
 
 variables:  
-  projectsToBuild: '**/Core[*].csproj'
+  projectsToBuild: '**/Core*.csproj'
   configuration: Release
   platform: 'Any CPU'
   
