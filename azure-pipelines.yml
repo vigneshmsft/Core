@@ -8,7 +8,7 @@ pool:
 
 variables:  
   projectsToBuild: '**/*.csproj'
-  projectsToPack: '**\\*.csproj;!**\\*Tests.csproj;'
+  projectsToPack: '**/*.csproj;!**/*Tests.csproj'
   configuration: Release
   platform: 'Any CPU'
   system.debug: 'true'
