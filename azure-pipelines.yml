@@ -17,6 +17,11 @@ variables:
   version: ''
   
 steps:
+- task: UseDotNet@2
+  displayName: Use dotnet 2.2.x
+  inputs:
+    packageType: 'sdk'
+    version: '2.2.402'
 
 - task: PowerShell@2
   displayName: Prepare Version Number
@@ -26,9 +31,8 @@ steps:
       $version = $env:BUILD_BUILDNUMBER.Substring($env:BUILD_BUILDNUMBER.IndexOf('-')+1);
       Write-Host "##vso[task.setvariable variable=version;]$version";
       
-
 - task: DotNetCoreCLI@2
-  displayName: restore
+  displayName: Restore
   inputs:
     command: restore
     nobuild: true
