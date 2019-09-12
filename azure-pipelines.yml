@@ -8,12 +8,11 @@ pool:
 
 variables:  
   projectsToBuild: '**/*.csproj'
-  projectsToPack: '**/*.csproj;-:**/*Tests.csproj'
   configuration: Release
   platform: 'Any CPU'
   system.debug: 'true'
   nuggetsDirectory: $(Build.ArtifactStagingDirectory)\Nuggets
-  nuggetsToPush: $(nuggetsDirectory)\Core*.nupkg;
+  nuggetsToPush: $(nuggetsDirectory)\Core*.nupkg;!$(nuggetsDirectory)\Core*Tests.nupkg;
   version: ''
   
 steps:
@@ -54,7 +53,7 @@ steps:
   inputs:
     command: custom
     custom: pack
-    projects: '$(projectsToPack)'
+    projects: '$(projectsToBuild)'
     configuration: $(configuration)
     arguments: '-noLogo --no-build -p:PackageVersion=$(version) -o $(nuggetsDirectory)'
 
