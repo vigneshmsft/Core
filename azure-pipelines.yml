@@ -8,6 +8,7 @@ pool:
 
 variables:  
   projectsToBuild: '**/*.csproj'
+  projectsToPack: '**/*.csproj;!**/*Test*.csproj;'
   configuration: Release
   platform: 'Any CPU'
   system.debug: 'true'
@@ -49,7 +50,7 @@ steps:
   inputs:
     command: custom
     custom: pack
-    projects: '$(projectsToBuild)'
+    projects: '$(projectsToPack)'
     configuration: $(configuration)
     arguments: '-noLogo --no-build -p:PackageVersion=$(version) -o $(nuggetsDirectory)'
 
