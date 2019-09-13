@@ -5,15 +5,13 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using Logging;
     using Authentication.Tokens;
     using Microsoft.Azure.ServiceBus;
     using Microsoft.Extensions.DependencyInjection;
     using static Core.Serializers.JsonSerializer;
 
-    internal class AzureEventSubscription : IEventSubscription
+    internal class AzureEventSubscription : EventSubscription
     {
-        private readonly ILog _log;
         private readonly IServiceProvider _scopeProvider;
 
         private SubscriptionClient _activeSubscriptionClient;
@@ -21,15 +19,16 @@
 
         private static readonly RetryPolicy RetryPolicy = new RetryExponential(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(60), 20);
 
-        private readonly Dictionary<string, List<SubscriberInfo>> _subscribers = new Dictionary<string, List<SubscriberInfo>>();
+        public override string Namespace { get; }
 
-        public string Namespace { get; }
-
-        public AzureEventSubscription(IServiceProvider scopeProvider, string activeConnectionString, string passiveConnectionString, string topicName, string subscriptionName, bool sessionEnabled = false)
+        public AzureEventSubscription(IServiceProvider scopeProvider,
+            string activeConnectionString,
+            string passiveConnectionString,
+            string topicName,
+            string subscriptionName,
+            bool sessionEnabled = false) : base(topicName, scopeProvider)
         {
             _scopeProvider = scopeProvider;
-
-            _log = scopeProvider.GetService<ILog>();
 
             Namespace = activeConnectionString.Substring(0, activeConnectionString.IndexOf(';'));
 
@@ -136,64 +135,6 @@
             });
         }
 
-        public void AddSubscription<TEvent, TEventSubscriber>() where TEvent : Event where TEventSubscriber : IEventSubscriber<TEvent>
-        {
-            var eventName = GetTypeName<TEvent>();
-
-            _log.Trace($"AddSubscription {typeof(TEventSubscriber).FullName} for {eventName}");
-
-            List<SubscriberInfo> currentSubscribers = GetCurrentSubscribers(eventName);
-
-            var subscriptionInfo = SubscriberInfo.From<TEvent, TEventSubscriber>();
-
-            if (!currentSubscribers.Contains(subscriptionInfo))
-            {
-                _log.Trace($"Subscription already exists for {typeof(TEventSubscriber).FullName} for event {eventName}");
-
-                //_activeSubscriptionClient.AddRuleAsync(new RuleDescription(subscriptionInfo.RuleName, new CorrelationFilter
-                //{
-                //    Label = eventName
-
-                //})).GetAwaiter().GetResult();
-
-                currentSubscribers.Add(subscriptionInfo);
-            }
-
-            _log.Trace($"Subscription added for {typeof(TEventSubscriber).FullName} for event {eventName}");
-
-            _subscribers[eventName] = currentSubscribers;
-        }
-
-        public void RemoveSubscription<TEvent, TEventSubscriber>() where TEvent : Event where TEventSubscriber : IEventSubscriber<TEvent>
-        {
-            var eventName = GetTypeName<TEvent>();
-
-            List<SubscriberInfo> currentSubscribers = GetCurrentSubscribers(eventName);
-
-            var subscriptionInfo = SubscriberInfo.From<TEvent, TEventSubscriber>();
-
-            _log.Trace($"RemoveSubscription {subscriptionInfo.EventType} for {eventName}");
-
-            if (!currentSubscribers.Contains(subscriptionInfo))
-            {
-                return;
-            }
-
-            //_activeSubscriptionClient.RemoveRuleAsync(subscriptionInfo.RuleName)
-            //                   .GetAwaiter().GetResult();
-
-            currentSubscribers.Remove(subscriptionInfo);
-
-            _subscribers[eventName] = currentSubscribers;
-        }
-
-        internal IEnumerable<SubscriberInfo> GetSubscribersForEvent(string eventName)
-        {
-            var currentSubscribers = GetCurrentSubscribers(eventName);
-
-            return (IEnumerable<SubscriberInfo>)currentSubscribers ?? new SubscriberInfo[0];
-        }
-
         private Task ExceptionReceivedHandler(ExceptionReceivedEventArgs exceptionReceivedEventArgs)
         {
             _log.Warn($"Message handler encountered an exception {exceptionReceivedEventArgs.Exception}");
@@ -231,9 +172,9 @@
 
                 SetAuthenticationToken();
 
-                var subscriberInfos = GetSubscribersForEvent(eventName).ToArray();
+                var subscriberInfos = _subscriptionFactory.GetSubscriberForEvent(eventName)?.EventSubscribers;
 
-                if (!subscriberInfos.Any())
+                if (!subscriberInfos?.Any() ?? false)
                 {
                     _log.Warn($"No subscribers found for {eventName}");
                     return;
@@ -313,54 +254,18 @@
             }
         }
 
-
-        private string GetTypeName<TEvent>()
+        protected override void Dispose(bool isDisposing)
         {
-            return typeof(TEvent).FullName;
-        }
-
-        private List<SubscriberInfo> GetCurrentSubscribers(string eventName)
-        {
-            _log.Trace($"GetCurrentSubscribers for {eventName}");
-
-            List<SubscriberInfo> currentSubscribers = null;
-            if (_subscribers.ContainsKey(eventName))
+            if (isDisposing)
             {
-                currentSubscribers = _subscribers[eventName];
-            }
-            else
-            {
-                currentSubscribers = new List<SubscriberInfo>();
-                _subscribers.Add(eventName, currentSubscribers);
+                _activeSubscriptionClient?.CloseAsync()
+                   .GetAwaiter().GetResult();
+
+                _passiveSubscriptionClient?.CloseAsync()
+                                   .GetAwaiter().GetResult();
             }
 
-            _log.Trace($"GetCurrentSubscribers for {eventName} returned {currentSubscribers.Count} subscribers.");
-
-            return currentSubscribers;
-        }
-
-        public void Dispose()
-        {
-            _activeSubscriptionClient?.CloseAsync()
-                               .GetAwaiter().GetResult();
-
-            _passiveSubscriptionClient?.CloseAsync()
-                               .GetAwaiter().GetResult();
-
-            _subscribers.Clear();
-        }
-
-        private void LogExceptions(Exception ex)
-        {
-            var innerException = ex.InnerException;
-
-            if (innerException != null)
-            {
-                _log.Trace("Logging Inner Exception !!!");
-                LogExceptions(innerException);
-            }
-
-            _log.Error(ex);
+            base.Dispose(isDisposing);
         }
     }
 }

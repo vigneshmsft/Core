@@ -1,4 +1,4 @@
-﻿namespace Core.Messaging.InProcess
+﻿namespace Core.Messaging
 {
     using System;
     using System.Collections.Generic;

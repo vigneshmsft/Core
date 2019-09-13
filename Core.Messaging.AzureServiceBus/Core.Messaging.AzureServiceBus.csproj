@@ -6,13 +6,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Core" Version="2019.9.7" />
-    <PackageReference Include="Core.Authentication.Tokens" Version="2019.9.7" />
-    <PackageReference Include="Core.Serializers" Version="2019.9.7" />
+    <PackageReference Include="Core" Version="2019.9.14" />
+    <PackageReference Include="Core.Authentication.Tokens" Version="2019.9.14" />
+    <PackageReference Include="Core.Serializers" Version="2019.9.14" />
     <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.ServiceBus" Version="4.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core.Messaging\Core.Messaging.csproj" />
   </ItemGroup>
 
 </Project>

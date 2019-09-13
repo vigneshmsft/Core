@@ -5,7 +5,7 @@
 
     public class SubscriptionFactory : IDisposable
     {
-        private readonly Dictionary<Type, Subscription> _subscribers = new Dictionary<Type, Subscription>();
+        private readonly Dictionary<string, Subscription> _subscribers = new Dictionary<string, Subscription>();
 
         public Subscription GetSubscriberForEvent<TEvent>() where TEvent : Event
         {
@@ -13,6 +13,11 @@
         }
 
         public Subscription GetSubscriberForEvent(Type typeOfEvent)
+        {
+            return GetSubscriberForEvent(typeOfEvent.FullName);
+        }
+
+        public Subscription GetSubscriberForEvent(string typeOfEvent)
         {
             Subscription _subscriber = null;
 
@@ -27,7 +32,7 @@
         public Subscription CreateSubscriberForEvent<TEvent>() where TEvent : Event
         {
             Subscription _subscriber = new Subscription();
-            _subscribers[typeof(TEvent)] = _subscriber;
+            _subscribers[typeof(TEvent).FullName] = _subscriber;
             return _subscriber;
         }
 
