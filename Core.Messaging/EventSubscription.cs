@@ -1,7 +1,6 @@
 ﻿namespace Core.Messaging
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Core.Logging;
     using Microsoft.Extensions.DependencyInjection;
@@ -9,16 +8,18 @@
     public abstract class EventSubscription : IEventSubscription
     {
         protected readonly string _topicName;
-        protected readonly IServiceProvider _serviceProvider;
+        protected readonly IServiceScopeFactory _serviceScopeFactory;
         protected readonly SubscriptionFactory _subscriptionFactory;
         protected readonly ILog _log;
+        protected readonly EventHandler _eventHandler;
 
-        protected EventSubscription(string topicName, IServiceProvider serviceProvider)
+        protected EventSubscription(string topicName, IServiceScopeFactory serviceScopeFactory)
         {
             _topicName = topicName;
-            _serviceProvider = serviceProvider;
+            _serviceScopeFactory = serviceScopeFactory;
             _subscriptionFactory = new SubscriptionFactory();
-            _log = serviceProvider.GetRequiredService<ILog>();
+            _log = serviceScopeFactory.CreateScope().ServiceProvider.GetRequiredService<ILog>();
+            _eventHandler = new EventHandler(serviceScopeFactory, _subscriptionFactory);
         }
 
         public abstract string Namespace { get; }
@@ -48,34 +49,10 @@
             subscriber?.Remove<TEvent, TEventSubscriber>();
         }
 
-        internal async Task OnEventReceived<TEvent>(TEvent @event) where TEvent : Event
+        protected async Task OnEventReceived<TEvent>(TEvent @event) where TEvent : Event
         {
-            var typeOfEvent = @event.GetType();
-            var eventSubscriber = _subscriptionFactory.GetSubscriberForEvent(typeOfEvent);
-            var subscribers = eventSubscriber?.EventSubscribers ?? new SubscriberInfo[0];
-
-            var handleTasks = new List<Task>();
-
-            foreach (var subscriberInfo in subscribers)
-            {
-                handleTasks.Add(Task.Run(async () =>
-                {
-                    using (var scope = _serviceProvider.CreateScope())
-                    {
-                        var subscriber = scope.ServiceProvider.GetService(subscriberInfo.Type) as IEventSubscriber<TEvent>;
-                        await subscriber?.Handle(@event);
-                    }
-                }));
-            }
-
-            await Task.WhenAll(handleTasks).ContinueWith(task =>
-            {
-                task.Exception.Handle(e =>
-                {
-                    return false;
-                });
-
-            }, TaskContinuationOptions.OnlyOnFaulted);
+            _log.Trace($"OnEventReceived {nameof(TEvent)}");
+            await _eventHandler.Handle(@event);
         }
 
         protected void LogExceptions(Exception exception)

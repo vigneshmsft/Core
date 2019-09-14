@@ -7,7 +7,7 @@
 
     public class ServiceCollectionFixture
     {
-        public static IServiceProvider CreateServiceProvider()
+        public static IServiceScopeFactory CreateServiceProviderScopeFactory()
         {
             var serviceCollection = new ServiceCollection();
 
@@ -16,7 +16,8 @@
             serviceCollection.AddSingleton<DoSomethingElseOnTestEvent>();
             serviceCollection.AddSingleton<DoSomethingWithExceptionOnTestEvent>();
 
-            return serviceCollection.BuildServiceProvider();
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+            return serviceProvider.GetRequiredService<IServiceScopeFactory>();
         }
     }
 }

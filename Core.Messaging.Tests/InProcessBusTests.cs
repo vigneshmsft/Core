@@ -10,13 +10,13 @@ namespace Core.Messaging.Tests
     [TestFixture]
     public class InProcessBusTests
     {
-        private IServiceProvider _serviceProvider;
+        private IServiceScopeFactory _serviceProvider;
         private InProcessBus _inProcessBus;
 
         [OneTimeSetUp]
         public void TestSetup()
         {
-            _serviceProvider = ServiceCollectionFixture.CreateServiceProvider();
+            _serviceProvider = ServiceCollectionFixture.CreateServiceProviderScopeFactory();
             _inProcessBus = new InProcessBus(_serviceProvider);
         }
 
@@ -44,7 +44,7 @@ namespace Core.Messaging.Tests
             [Test]
             public async Task WhenSubscriberNotRegistered_CheckEventHandlerIsNotInvoked()
             {
-                var serviceProvider = ServiceCollectionFixture.CreateServiceProvider();
+                var serviceProvider = ServiceCollectionFixture.CreateServiceProviderScopeFactory();
                 var inProcessBus = new InProcessBus(serviceProvider);
 
                 var publisher = inProcessBus.CreatePublisher(TopicName);
@@ -60,7 +60,7 @@ namespace Core.Messaging.Tests
             [Test]
             public async Task WhenSubscriberRegistered_CheckEventHandlerInvoked()
             {
-                var serviceProvider = ServiceCollectionFixture.CreateServiceProvider();
+                var serviceProvider = ServiceCollectionFixture.CreateServiceProviderScopeFactory();
                 var inProcessBus = new InProcessBus(serviceProvider);
 
                 var publisher = inProcessBus.CreatePublisher(TopicName);
@@ -77,7 +77,7 @@ namespace Core.Messaging.Tests
             [Test]
             public async Task WhenSubscriberRegistered_ThrowsException_CheckEventHandlerInvoked()
             {
-                var serviceProvider = ServiceCollectionFixture.CreateServiceProvider();
+                var serviceProvider = ServiceCollectionFixture.CreateServiceProviderScopeFactory();
                 var inProcessBus = new InProcessBus(serviceProvider);
 
                 var publisher = inProcessBus.CreatePublisher(TopicName);
@@ -95,7 +95,7 @@ namespace Core.Messaging.Tests
             [Test]
             public async Task WhenMultipleSubscriberRegistered_CheckEventHandlerIsInvokedForAll()
             {
-                var serviceProvider = ServiceCollectionFixture.CreateServiceProvider();
+                var serviceProvider = ServiceCollectionFixture.CreateServiceProviderScopeFactory();
                 var inProcessBus = new InProcessBus(serviceProvider);
 
                 var publisher = inProcessBus.CreatePublisher(TopicName);
@@ -112,10 +112,10 @@ namespace Core.Messaging.Tests
                 await Task.WhenAll(handlerOne, handlerTwo);
             }
 
-            private async Task AssertTestEventHandled<TTestEventHandler>(IServiceProvider serviceProvider, bool shouldBeHandled = true) where TTestEventHandler : TestEventHandler
+            private async Task AssertTestEventHandled<TTestEventHandler>(IServiceScopeFactory scopeFactory, bool shouldBeHandled = true) where TTestEventHandler : TestEventHandler
             {
                 var handled = false;
-                var testEventHandler = serviceProvider.GetService<TTestEventHandler>();
+                var testEventHandler = scopeFactory.CreateScope().ServiceProvider.GetService<TTestEventHandler>();
 
                 testEventHandler.OnHandled += Handle;
 

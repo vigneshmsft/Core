@@ -1,11 +1,11 @@
 ﻿namespace Core.Messaging.InProcess
 {
-    using System;
+    using Microsoft.Extensions.DependencyInjection;
 
     public class InProcessEventSubscription : EventSubscription
     {
-        public InProcessEventSubscription(string topicName, IServiceProvider serviceProvider)
-            :base(topicName, serviceProvider)
+        public InProcessEventSubscription(string topicName, IServiceScopeFactory serviceScopeFactory)
+            :base(topicName, serviceScopeFactory)
         {
 
         }

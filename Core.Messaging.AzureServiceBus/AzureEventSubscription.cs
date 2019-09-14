@@ -12,8 +12,6 @@
 
     internal class AzureEventSubscription : EventSubscription
     {
-        private readonly IServiceProvider _scopeProvider;
-
         private SubscriptionClient _activeSubscriptionClient;
         private SubscriptionClient _passiveSubscriptionClient;
 
@@ -21,15 +19,13 @@
 
         public override string Namespace { get; }
 
-        public AzureEventSubscription(IServiceProvider scopeProvider,
+        public AzureEventSubscription(IServiceScopeFactory serviceScopeFactory,
             string activeConnectionString,
             string passiveConnectionString,
             string topicName,
             string subscriptionName,
-            bool sessionEnabled = false) : base(topicName, scopeProvider)
+            bool sessionEnabled = false) : base(topicName, serviceScopeFactory)
         {
-            _scopeProvider = scopeProvider;
-
             Namespace = activeConnectionString.Substring(0, activeConnectionString.IndexOf(';'));
 
             CreateSubscriptionClient(activeConnectionString, passiveConnectionString, topicName, subscriptionName, sessionEnabled);
@@ -156,9 +152,10 @@
         {
             var eventName = message.Label;
 
+            var typeOfEvent = Type.GetType(eventName);
+
             try
             {
-                var provider = _scopeProvider.CreateScope().ServiceProvider;
                 var messageBody = Encoding.UTF8.GetString(message.Body);
                 var authenticationToken = (string)message.UserProperties["AuthenticationToken"];
                 var userName = (string)message.UserProperties["User"];
@@ -172,63 +169,18 @@
 
                 SetAuthenticationToken();
 
-                var subscriberInfos = _subscriptionFactory.GetSubscriberForEvent(eventName)?.EventSubscribers;
+                var eventData = FromJson<object>(messageBody);
 
-                if (!subscriberInfos?.Any() ?? false)
-                {
-                    _log.Warn($"No subscribers found for {eventName}");
-                    return;
-                }
+                var onEventReceivedMethod = typeof(AzureEventSubscription)
+                            .GetMethod("OnEventReceived", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                            .MakeGenericMethod(typeOfEvent);
 
-                var handleTasks = new List<Task>();
-
-                foreach (var subscriberInfo in subscriberInfos)
-                {
-                    var eventSubscribers = provider.GetServices(subscriberInfo.Type).ToArray();
-
-                    if (!eventSubscribers.Any())
-                    {
-                        _log.Warn($"No types registered as {subscriberInfo.Type}");
-                        continue;
-                    }
-
-                    var eventData = FromJson<object>(messageBody);
-
-                    var handleMethod = subscriberInfo.Type.GetMethod("Handle", new[] { subscriberInfo.EventType });
-
-                    foreach (var eventSubscriber in eventSubscribers)
-                    {
-                        var handleTask = (Task)handleMethod.Invoke(eventSubscriber, new[] { eventData });
-                        handleTasks.Add(handleTask);
-
-#pragma warning disable 4014
-                        handleTask.ContinueWith(task =>
-#pragma warning restore 4014
-                        {
-                            if (handleTask.IsFaulted)
-                            {
-                                var aggException = handleTask.Exception;
-                                _log.Error(new Exception("Handle Task Exception -> " + aggException.Message));
-                                aggException.Handle(hndExp =>
-                                {
-                                    _log.Error(hndExp, new Dictionary<string, string> {
-                                        { "Handler", eventSubscriber.ToString() },
-                                        { "SubscriberType", subscriberInfo.Type.FullName },
-                                        { "EventType", subscriberInfo.EventType.FullName}});
-
-                                    return true;
-                                });
-                            }
-                        }, TaskContinuationOptions.OnlyOnFaulted);
-
-                    }
-                }
-
-                await Task.WhenAll(handleTasks);
+                await (Task)onEventReceivedMethod.Invoke(this, new object[] { eventData });
 
                 void SetAuthenticationToken()
                 {
-                    var tokenValidators = provider.GetServices<UserFromAuthenticationToken>();
+                    //TODO: Move to appropriate scope
+                    var tokenValidators = _serviceScopeFactory.CreateScope().ServiceProvider.GetServices<UserFromAuthenticationToken>();
 
                     foreach (var tokenValidator in tokenValidators)
                     {

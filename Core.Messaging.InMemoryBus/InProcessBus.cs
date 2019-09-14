@@ -9,15 +9,13 @@
     {
         private readonly List<WeakReference<InProcessEventPublisher>> _createdPublishers;
         private readonly Dictionary<string, WeakReference<InProcessEventSubscription>> _subscriptionForTopics;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly IServiceScope _serviceProviderScope;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        public InProcessBus(IServiceProvider serviceProvider)
+        public InProcessBus(IServiceScopeFactory serviceScopeFactory)
         {
             _createdPublishers = new List<WeakReference<InProcessEventPublisher>>();
             _subscriptionForTopics = new Dictionary<string, WeakReference<InProcessEventSubscription>>();
-            _serviceProviderScope = serviceProvider.CreateScope();
-            _serviceProvider = _serviceProviderScope.ServiceProvider;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         public IEventPublisher CreatePublisher(string topicName)
@@ -46,7 +44,7 @@
 
         public IEventSubscription CreateSubscription(string topicName)
         {
-            var subscription = new InProcessEventSubscription(topicName, _serviceProvider);
+            var subscription = new InProcessEventSubscription(topicName, _serviceScopeFactory);
             _subscriptionForTopics.Add(topicName, new WeakReference<InProcessEventSubscription>(subscription));
             return subscription;
         }
@@ -62,7 +60,6 @@
             }
             _createdPublishers.Clear();
             _subscriptionForTopics.Clear();
-            _serviceProviderScope.Dispose();
         }
     }
 }
